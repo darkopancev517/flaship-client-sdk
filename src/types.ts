@@ -1,11 +1,3 @@
-export interface ClientConfig {
-  baseUrl: string
-  clientId: string
-  apiKey: string
-  password: string
-  timeout?: number
-}
-
 export interface APIResponse<T> {
   success: boolean
   data: T

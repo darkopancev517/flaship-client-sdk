@@ -1,72 +1,61 @@
 import jwt, { Secret, JwtPayload } from "jsonwebtoken"
 
-import { ClientConfig, APIResponse, HealthStatus } from "./types"
-import { SDKError, handleAPIError, handleNetworkError } from "./errors"
+import { APIResponse, HealthStatus } from "./types"
+import {
+  validateFlashipUrl,
+  handleAPIError,
+  handleRequestError,
+} from "./helpers"
 
 export class FlashipClient {
-  private config: ClientConfig
+  private baseUrl: URL
+  private authUrl: URL
+  private imageUrl: URL
+  private projectId: string
+  private apiKey: string
+  private password: string
+  private timeout?: number
 
-  constructor(config: ClientConfig) {
-    if (!config.baseUrl) {
-      throw new SDKError(
-        "Base URL is required",
-        "CONFIGURATION_ERROR",
-        "Please provide baseURL in SDK constructor"
-      )
-    }
+  constructor(
+    protected flashipUrl: string,
+    protected flashipProjectId: string,
+    protected flashipApiKey: string,
+    protected flashipPassword: string,
+    timeout?: number
+  ) {
+    const baseUrl = validateFlashipUrl(flashipUrl)
+    if (!flashipProjectId) throw new Error("flashipProjectId is required.")
+    if (!flashipApiKey) throw new Error("flashipApiKey is required.")
+    if (!flashipPassword) throw new Error("flashipPassword is required.")
 
-    if (!config.clientId) {
-      throw new SDKError(
-        "Client ID is required",
-        "CONFIGURATION_ERROR",
-        "Please provide client ID in SDK constructor"
-      )
-    }
-
-    if (!config.apiKey) {
-      throw new SDKError(
-        "API key is required",
-        "CONFIGURATION_ERROR",
-        "Please provide API key in SDK constructor"
-      )
-    }
-
-    if (!config.password) {
-      throw new SDKError(
-        "Password is required",
-        "CONFIGURATION_ERROR",
-        "Please provide password in SDK constructor"
-      )
-    }
-
-    this.config = {
-      timeout: 30000, // Default 30 second timeout
-      ...config,
-    }
+    this.baseUrl = baseUrl
+    this.authUrl = new URL('auth/v1', baseUrl)
+    this.imageUrl = new URL('image/v1', baseUrl)
+    this.projectId = flashipProjectId
+    this.apiKey = flashipApiKey
+    this.password = flashipPassword
+    this.timeout = timeout ?? 30000 // Default 30 seconds timeout
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.config.baseUrl}${endpoint}`
+    const url = new URL(endpoint, this.baseUrl)
 
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        this.config.timeout
-      )
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout)
 
       // Create authorization token
       const authPayload: JwtPayload = {
-        clientId: this.config.clientId,
-        password: this.config.password,
+        projectId: this.projectId,
+        password: this.password,
       }
 
-      const token = jwt.sign(authPayload, this.config.apiKey as Secret)
+      const token = jwt.sign(authPayload, this.apiKey as Secret)
 
-      const response = await fetch(url, {
+      const response = await fetch(url.href, {
         ...options,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -86,20 +75,24 @@ export class FlashipClient {
       }
 
       if (!response.ok) {
-        handleAPIError(response, data)
+        handleAPIError(response)
       }
 
       return data as T
     } catch (error) {
-      if (error instanceof SDKError) {
-        throw error
+      if (error instanceof Error) {
+        handleRequestError(error)
       }
 
-      handleNetworkError(error as Error)
+      throw new Error("An unexpected request error occurred.")
     }
   }
 
   async getHealth(): Promise<APIResponse<HealthStatus>> {
-    return this.request<APIResponse<HealthStatus>>("/health")
+    const params = new URLSearchParams({
+      item: "health",
+    })
+
+    return this.request<APIResponse<HealthStatus>>(`?${params}`)
   }
 }

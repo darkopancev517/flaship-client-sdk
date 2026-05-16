@@ -11,15 +11,19 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "jest"
   },
   "keywords": [
     "flaship",
     "typescript"
   ],
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
+    "jest": "^30.4.2",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.9",
     "typescript": "^5.0.0"
   },
   "engines": {
