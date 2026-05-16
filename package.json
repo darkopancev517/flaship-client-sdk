@@ -1,0 +1,32 @@
+{
+  "name": "flaship-client-sdk",
+  "version": "1.0.0",
+  "description": "Flaship client SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "flaship",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "jsonwebtoken": "^9.0.3"
+  }
+}
