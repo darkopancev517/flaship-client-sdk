@@ -4,9 +4,8 @@ export interface APIResponse<T> {
   timestamp: string
 }
 
-export interface HealthStatus {
-  connection: boolean
+export interface ClientStatus {
+  status: "up" | "down"
   version: string
-  latency_ms: number
-  message: string
+  description: string
 }

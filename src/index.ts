@@ -1,2 +1,2 @@
 export { FlashipClient } from "./FlashipClient"
-export type { APIResponse, HealthStatus } from "./types"
+export type { APIResponse, ClientStatus } from "./types"

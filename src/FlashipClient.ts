@@ -1,6 +1,6 @@
 import jwt, { Secret, JwtPayload } from "jsonwebtoken"
 
-import { APIResponse, HealthStatus } from "./types"
+import { APIResponse, ClientStatus } from "./types"
 import {
   validateFlashipUrl,
   handleAPIError,
@@ -88,11 +88,11 @@ export class FlashipClient {
     }
   }
 
-  async getHealth(): Promise<APIResponse<HealthStatus>> {
+  async getStatus(): Promise<APIResponse<ClientStatus>> {
     const params = new URLSearchParams({
-      item: "health",
+      item: "status",
     })
 
-    return this.request<APIResponse<HealthStatus>>(`?${params}`)
+    return this.request<APIResponse<ClientStatus>>(`data?${params}`)
   }
 }
