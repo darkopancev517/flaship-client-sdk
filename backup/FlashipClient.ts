@@ -1,11 +1,11 @@
 import jwt, { Secret, JwtPayload } from "jsonwebtoken"
 
-import { APIResponse, ClientStatus } from "./types"
+import { APIResponse, ClientStatus } from "../types"
 import {
   validateFlashipUrl,
   handleAPIError,
   handleRequestError,
-} from "./helpers"
+} from "../utils/helpers"
 
 export class FlashipClient {
   private baseUrl: URL
@@ -29,8 +29,8 @@ export class FlashipClient {
     if (!flashipPassword) throw new Error("flashipPassword is required.")
 
     this.baseUrl = baseUrl
-    this.authUrl = new URL('auth/v1', baseUrl)
-    this.imageUrl = new URL('image/v1', baseUrl)
+    this.authUrl = new URL("auth/v1", baseUrl)
+    this.imageUrl = new URL("image/v1", baseUrl)
     this.projectId = flashipProjectId
     this.apiKey = flashipApiKey
     this.password = flashipPassword

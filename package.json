@@ -30,7 +30,10 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@panva/hkdf": "^1.2.1",
     "@types/jsonwebtoken": "^9.0.10",
+    "cookie": "^1.1.1",
+    "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3"
   }
 }
