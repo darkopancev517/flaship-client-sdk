@@ -1,94 +1,46 @@
-import { parse as parseCookie } from "cookie"
+import type { NextApiRequest } from "next"
 
 import * as routes from "./routes"
-import type { ClientEndpoint, ClientOptions } from "./types"
+import type {
+  ClientEndpoint,
+  ClientOptions,
+  RequestInternal,
+  ResponseInternal,
+} from "./types"
 import { detectOrigin } from "../utils/detect-origin"
 import { init } from "./init"
-import type { Cookie } from "./lib/cookie"
-
-export interface RequestInternal {
-  origin?: string
-  method?: string
-  cookies?: Partial<Record<string, string>>
-  headers?: Record<string, any>
-  query?: Record<string, any>
-  body?: Record<string, any>
-  endpoint: ClientEndpoint
-}
-
-export interface ClientHeader {
-  key: string
-  value: string
-}
-
-export interface ResponseInternal<
-  Body extends string | Record<string, any> | any[] = any,
-> {
-  status?: number
-  headers?: ClientHeader[]
-  body?: Body
-  redirect?: string
-  cookies?: Cookie[]
-}
-
-export interface ClientHandlerParams {
-  req: Request | RequestInternal
-  options: ClientOptions
-}
-
-async function getBody(req: Request): Promise<Record<string, any> | undefined> {
-  try {
-    return (await req.json()) as Promise<any>
-  } catch { }
-}
 
 async function toInternalRequest(
-  req: RequestInternal | Request
+  req: NextApiRequest
 ): Promise<RequestInternal> {
-  if (req instanceof Request) {
-    const url = new URL(req.url)
-    const client = url.pathname.split("/").slice(3)
-    const headers = Object.fromEntries(req.headers)
-    const query: Record<string, any> = Object.fromEntries(url.searchParams)
-
-    return {
-      endpoint: client[0] as ClientEndpoint,
-      method: req.method,
-      headers,
-      body: await getBody(req),
-      cookies: parseCookie(req.headers.get("cookie") ?? ""),
-      origin: detectOrigin(
-        headers["x-forwarded-host"] ?? headers.host,
-        headers["x-forwarded-proto"]
-      ),
-      query,
-    }
-  }
-
-  const { headers } = req
+  const { client, ...query } = req.query
+  const { headers, body, method, cookies } = req
   const host = headers?.["x-forwarded-host"] ?? headers?.host
-  req.origin = detectOrigin(host, headers?.["x-forwarded-proto"])
 
-  return req
+  return {
+    method,
+    cookies,
+    headers,
+    query,
+    body,
+    origin: detectOrigin(host, headers?.["x-forwarded-proto"]),
+    endpoint: client?.[0] as ClientEndpoint,
+  }
 }
 
 export async function ClientHandler<
   Body extends string | Record<string, any> | any[],
->(params: ClientHandlerParams): Promise<ResponseInternal<Body>> {
+>(params: {
+  req: NextApiRequest
+  options: ClientOptions
+}): Promise<ResponseInternal<Body>> {
   const { options: clientOptions, req: incomingRequest } = params
 
   const req = await toInternalRequest(incomingRequest)
 
   const { endpoint, method = "GET" } = req
 
-  const { options, cookies } = await init({
-    clientOptions,
-    endpoint,
-    origin: req.origin,
-    csrfToken: req.body?.csrfToken,
-    cookies: req.cookies,
-    isPost: method === "POST",
-  })
+  const { options, cookies } = await init({ req, clientOptions })
 
   //const sessionStore = new SessionStore(options.cookies.sessionToken, req)
 

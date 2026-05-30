@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 
-import type { ClientOptions, ClientEndpoint } from "../core/types"
+import type { ClientOptions } from "../core/types"
 import { ClientHandler } from "../core"
 import { setCookie } from "./utils"
 
@@ -9,19 +9,7 @@ async function ClientApiHandler(
   res: NextApiResponse,
   options: ClientOptions
 ) {
-  const { client, ...query } = req.query
-
-  const handler = await ClientHandler({
-    req: {
-      body: req.body,
-      query,
-      cookies: req.cookies,
-      headers: req.headers,
-      method: req.method,
-      endpoint: client?.[0] as ClientEndpoint,
-    },
-    options,
-  })
+  const handler = await ClientHandler({ req, options })
 
   res.status(handler.status ?? 200)
 

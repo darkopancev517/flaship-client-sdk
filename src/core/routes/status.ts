@@ -1,20 +1,14 @@
 import * as z from "zod"
 
-import type { RequestInternal, ResponseInternal } from ".."
-import { InternalOptions } from "../types"
+import type { RouteParams, ResponseInternal } from "../types"
 import { parseError } from "../lib/utils"
-
-interface StatusParams {
-  req: RequestInternal
-  options: InternalOptions
-}
 
 const getQuerySchema = z.object({
   connection: z.coerce.boolean().optional(),
   version: z.coerce.boolean().optional(),
 })
 
-export async function GET(params: StatusParams): Promise<ResponseInternal> {
+export async function GET(params: RouteParams): Promise<ResponseInternal> {
   const { req, options } = params
   const { query: reqQuery } = req
 

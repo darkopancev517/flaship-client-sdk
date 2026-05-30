@@ -1,5 +1,6 @@
 import type { SerializeOptions } from "cookie"
 
+import type { Cookie } from "./lib/cookie"
 import type { JWTOptions } from "../jwt"
 import type { InternalUrl } from "../utils/parse-url"
 
@@ -41,4 +42,34 @@ export interface InternalOptions {
   secret: string
   jwt: JWTOptions
   cookies: CookiesOptions
+}
+
+export interface RequestInternal {
+  origin?: string
+  method?: string
+  cookies?: Partial<Record<string, string>>
+  headers?: Record<string, any>
+  query?: Record<string, any>
+  body?: Record<string, any>
+  endpoint: ClientEndpoint
+}
+
+export interface ClientHeader {
+  key: string
+  value: string
+}
+
+export interface ResponseInternal<
+  Body extends string | Record<string, any> | any[] = any,
+> {
+  status?: number
+  headers?: ClientHeader[]
+  body?: Body
+  redirect?: string
+  cookies?: Cookie[]
+}
+
+export interface RouteParams {
+  req: RequestInternal
+  options: InternalOptions
 }

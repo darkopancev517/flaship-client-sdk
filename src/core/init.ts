@@ -1,38 +1,28 @@
 import * as cookie from "./lib/cookie"
 import * as jwt from "../jwt"
-import { ClientOptions, InternalOptions } from "./types"
-import { RequestInternal } from "."
+import { ClientOptions, InternalOptions, RequestInternal } from "./types"
 import { parseUrl, parseClientUrl } from "../utils/parse-url"
 import { createSecret } from "./lib/utils"
 import { createCSRFToken } from "./lib/csrf-token"
 import { createAuthToken } from "./lib/auth-token"
 
-interface InitParams {
-  origin?: string
-  clientOptions: ClientOptions
-  endpoint: InternalOptions["endpoint"]
-  /** CSRF token value extracted from the incoming request. From body if POST, from query if GET */
-  csrfToken?: string
-  /** Is the incoming request a POST request? */
-  isPost: boolean
-  cookies: RequestInternal["cookies"]
-}
-
 export async function init({
+  req,
   clientOptions,
-  endpoint,
-  origin,
-  cookies: reqCookies,
-  csrfToken: reqCsrfToken,
-  isPost,
-}: InitParams): Promise<{
+}: {
+  req: RequestInternal
+  clientOptions: ClientOptions
+}): Promise<{
   options: InternalOptions
   cookies: cookie.Cookie[]
 }> {
+  const { origin, endpoint, method, cookies: reqCookies } = req
+
+  const isPost = method === "POST"
+  const reqCsrfToken = req.body?.csrfToken
+
   const url = parseUrl(origin)
-
   const secret = createSecret({ clientOptions, url })
-
   const maxAge = 30 * 24 * 60 * 60 // Sessions expire after 30 days of being idle by default
 
   const { clientUrl, clientId, clientApiKey, clientSecret } = clientOptions
