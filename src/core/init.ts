@@ -1,18 +1,16 @@
-import { randomBytes, randomUUID } from "crypto"
-
 import * as cookie from "./lib/cookie"
 import * as jwt from "../jwt"
 import { ClientOptions, InternalOptions } from "./types"
 import { RequestInternal } from "."
-import { parseUrl } from "../utils/parse-url"
+import { parseUrl, parseClientUrl } from "../utils/parse-url"
 import { createSecret } from "./lib/utils"
 import { createCSRFToken } from "./lib/csrf-token"
-import { defaultCallbacks } from "./lib/default-callbacks"
+import { createAuthToken } from "./lib/auth-token"
 
 interface InitParams {
   origin?: string
   clientOptions: ClientOptions
-  action: InternalOptions["action"]
+  endpoint: InternalOptions["endpoint"]
   /** CSRF token value extracted from the incoming request. From body if POST, from query if GET */
   csrfToken?: string
   /** Is the incoming request a POST request? */
@@ -22,7 +20,7 @@ interface InitParams {
 
 export async function init({
   clientOptions,
-  action,
+  endpoint,
   origin,
   cookies: reqCookies,
   csrfToken: reqCsrfToken,
@@ -37,19 +35,18 @@ export async function init({
 
   const maxAge = 30 * 24 * 60 * 60 // Sessions expire after 30 days of being idle by default
 
+  const { clientUrl, clientId, clientApiKey, clientSecret } = clientOptions
+  const { userId, url: serverUrl } = parseClientUrl(clientUrl)
+
   const options: InternalOptions = {
     url,
-    action,
+    endpoint,
+    userId,
+    clientId,
+    clientApiKey,
+    clientSecret,
+    serverUrl,
     secret,
-    session: {
-      maxAge,
-      updateAge: 24 * 60 * 60,
-      generateSessionToken: () => {
-        // Use `randomUUID` if available. (Node 15.6+)
-        return randomUUID?.() ?? randomBytes(32).toString("hex")
-      },
-      ...clientOptions.session,
-    },
     jwt: {
       secret,
       maxAge,
@@ -64,7 +61,6 @@ export async function init({
       // Allow user cookie options to override any cookie settings above
       ...clientOptions.cookies,
     },
-    callbacks: { ...defaultCallbacks, ...clientOptions.callbacks },
   }
 
   // Init cookies
@@ -92,6 +88,10 @@ export async function init({
       options: options.cookies.csrfToken.options,
     })
   }
+
+  // Create server authorization token
+  const { authToken } = await createAuthToken(options)
+  options.serverAuthToken = authToken
 
   return { options, cookies }
 }

@@ -4,6 +4,6 @@ export function detectOrigin(forwardedHost: any, protocol: any) {
   if (process.env.VERCEL ?? process.env.AUTH_TRUST_HOST)
     return `${protocol === "http" ? "http" : "https"}://${forwardedHost}`
 
-  // If `FLASHIP_CLIENT_ORIGIN_URL` is `undefined` we fall back to "http://localhost:3000"
-  return process.env.FLASHIP_CLIENT_ORIGIN_URL
+  // If `NEXT_PUBLIC_SITE_URL` is `undefined` we fall back to "http://localhost:3000"
+  return process.env.NEXT_PUBLIC_SITE_URL
 }

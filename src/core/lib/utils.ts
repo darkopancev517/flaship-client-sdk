@@ -1,3 +1,5 @@
+import * as z from "zod"
+import { fromError } from "zod-validation-error"
 import { createHash } from "crypto"
 
 import type { InternalOptions, ClientOptions } from "../types"
@@ -33,4 +35,18 @@ export function createSecret(params: {
   return createHash("sha256")
     .update(JSON.stringify({ ...url, ...clientOptions }))
     .digest("hex")
+}
+
+export function parseError(error: Error | z.ZodError | any): {
+  message: string
+  status: number
+} {
+  if (error instanceof Error || error instanceof z.ZodError) {
+    return {
+      message: error instanceof Error ? error.message : fromError(error).message,
+      status: 400,
+    }
+  }
+
+  return { message: "An unexpected error occurred", status: 500 }
 }

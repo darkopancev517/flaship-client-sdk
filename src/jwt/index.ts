@@ -43,7 +43,7 @@ async function getDerivedEncryptionKey(
     "sha256",
     keyMaterial,
     salt,
-    `FlashipClient Generated Encryption Key${salt ? ` (${salt})` : ""}`,
+    `NextAuth.js Generated Encryption Key${salt ? ` (${salt})` : ""}`,
     32
   )
 }

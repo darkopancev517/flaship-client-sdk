@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "http"
 
-export interface ClientConfig {
+export interface ServerConfig {
   baseUrl: string
   basePath: string
 }
@@ -10,21 +10,21 @@ export interface CtxOrReq {
   ctx?: { req: Partial<IncomingMessage> & { body?: any } }
 }
 
-export function apiBaseUrl(__CLIENT: ClientConfig) {
+export function apiBaseUrl(__SERVER: ServerConfig) {
   if (typeof window === "undefined") {
     // Return absolute path when called server side
-    return `${__CLIENT.baseUrl}${__CLIENT.basePath}`
+    return `${__SERVER.baseUrl}${__SERVER.basePath}`
   }
   // Return relative path when called client side
-  return __CLIENT.basePath
+  return __SERVER.basePath
 }
 
 export async function fetchData<T = any>(
   path: string,
-  __CLIENT: ClientConfig,
+  __SERVER: ServerConfig,
   { ctx, req = ctx?.req }: CtxOrReq = {}
 ): Promise<T | null> {
-  const url = `${apiBaseUrl(__CLIENT)}/${path}`
+  const url = `${apiBaseUrl(__SERVER)}/${path}`
   try {
     const options: RequestInit = {
       headers: {

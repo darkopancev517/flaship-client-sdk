@@ -1,15 +1,64 @@
-import type { ResponseInternal } from ".."
+import * as z from "zod"
 
-export interface ClientStatus {
-  status: "up" | "down"
-  version: string
-  description: string
+import type { RequestInternal, ResponseInternal } from ".."
+import { InternalOptions } from "../types"
+import { parseError } from "../lib/utils"
+
+interface StatusParams {
+  req: RequestInternal
+  options: InternalOptions
 }
 
-export default async function status(): Promise<
-  ResponseInternal<ClientStatus>
-> {
-  return {
-    headers: [{ key: "Content-Type", value: "application/json" }],
+const getQuerySchema = z.object({
+  connection: z.coerce.boolean().optional(),
+  version: z.coerce.boolean().optional(),
+})
+
+export async function GET(params: StatusParams): Promise<ResponseInternal> {
+  const { req, options } = params
+  const { query: reqQuery } = req
+
+  try {
+    const query = getQuerySchema.safeParse(reqQuery)
+
+    if (!query.success) {
+      throw new Error("Invalid status query")
+    }
+
+    const { connection } = query.data
+
+    if (connection) {
+      const reqOptions: RequestInit = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${options.serverAuthToken}`,
+        },
+      }
+
+      const res = await fetch(
+        `${options.serverUrl.base}/status?connection=true`,
+        reqOptions
+      )
+
+      const data = await res.json()
+
+      console.log(data)
+
+      return {
+        status: res.status,
+        body: {
+          connection: Object.keys(data).length > 0 ? data.connection : false,
+        },
+      }
+    }
+
+    return {
+      status: 400,
+      body: { error: "Invalid status request" },
+    }
+  } catch (error) {
+    const { message, status } = parseError(error)
+    return { status: status, body: { error: message } }
   }
 }

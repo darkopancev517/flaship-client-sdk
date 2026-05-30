@@ -1,10 +1,9 @@
 import { parse as parseCookie } from "cookie"
 
-import type { ClientAction, ClientOptions } from "./types"
-import { detectOrigin } from "../utils/detect-origin"
 import * as routes from "./routes"
+import type { ClientEndpoint, ClientOptions } from "./types"
+import { detectOrigin } from "../utils/detect-origin"
 import { init } from "./init"
-import { SessionStore } from "./lib/cookie"
 import type { Cookie } from "./lib/cookie"
 
 export interface RequestInternal {
@@ -14,7 +13,7 @@ export interface RequestInternal {
   headers?: Record<string, any>
   query?: Record<string, any>
   body?: Record<string, any>
-  action: ClientAction
+  endpoint: ClientEndpoint
 }
 
 export interface ClientHeader {
@@ -48,13 +47,12 @@ async function toInternalRequest(
 ): Promise<RequestInternal> {
   if (req instanceof Request) {
     const url = new URL(req.url)
-    const slug = url.pathname.split("/").slice(3)
+    const client = url.pathname.split("/").slice(3)
     const headers = Object.fromEntries(req.headers)
     const query: Record<string, any> = Object.fromEntries(url.searchParams)
-    query.slug = slug
 
     return {
-      action: slug[0] as ClientAction,
+      endpoint: client[0] as ClientEndpoint,
       method: req.method,
       headers,
       body: await getBody(req),
@@ -81,11 +79,11 @@ export async function ClientHandler<
 
   const req = await toInternalRequest(incomingRequest)
 
-  const { action, method = "GET" } = req
+  const { endpoint, method = "GET" } = req
 
   const { options, cookies } = await init({
     clientOptions,
-    action,
+    endpoint,
     origin: req.origin,
     csrfToken: req.body?.csrfToken,
     cookies: req.cookies,
@@ -95,8 +93,8 @@ export async function ClientHandler<
   //const sessionStore = new SessionStore(options.cookies.sessionToken, req)
 
   if (method === "GET") {
-    switch (action) {
-      case "csrf":
+    switch (endpoint) {
+      case "csrf": {
         return {
           headers: [
             { key: "Content-Type", value: "application/json" },
@@ -116,11 +114,20 @@ export async function ClientHandler<
           body: { csrfToken: options.csrfToken } as any,
           cookies,
         }
+      }
+
+      case "status": {
+        const status = await routes.status.GET({
+          req,
+          options,
+        })
+        return { ...status, cookies }
+      }
 
       default:
     }
   } else if (method === "POST") {
-    switch (action) {
+    switch (endpoint) {
       default:
     }
   }

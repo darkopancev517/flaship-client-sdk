@@ -11,19 +11,16 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
-    "test": "jest"
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
     "flaship",
-    "typescript"
+    "typescript",
+    "sdk"
   ],
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
-    "jest": "^30.4.2",
     "prettier": "^3.6.2",
-    "ts-jest": "^29.4.9",
     "typescript": "^5.0.0"
   },
   "engines": {
@@ -34,6 +31,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "cookie": "^1.1.1",
     "jose": "^6.2.3",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "zod-validation-error": "^5.0.0"
   }
 }
