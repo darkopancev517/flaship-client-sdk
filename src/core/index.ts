@@ -73,19 +73,37 @@ export async function ClientHandler<
           req,
           options,
         })
-        return { ...status, cookies }
+        return { ...status }
+      }
+
+      case "auth": {
+        const auth = await routes.auth.GET({
+          req,
+          options,
+        })
+        return { ...auth }
       }
 
       default:
     }
   } else if (method === "POST") {
     switch (endpoint) {
+      case "auth": {
+        if (options.csrfTokenVerified) {
+          const auth = await routes.auth.POST({
+            req,
+            options,
+          })
+          return { ...auth }
+        }
+      }
+
       default:
     }
   }
 
   return {
     status: 400,
-    body: `Error: This action with HTTP is not supported by Flaship Client SDK` as any,
+    body: { error: `Flaship client ${endpoint} request failed` } as any,
   }
 }

@@ -13,6 +13,7 @@ export interface CookieOption {
 
 export interface CookiesOptions {
   csrfToken: CookieOption
+  clientAuthVerificationToken: CookieOption
 }
 
 export interface ClientOptions {
@@ -26,7 +27,7 @@ export interface ClientOptions {
   cookies?: Partial<CookiesOptions>
 }
 
-export type ClientEndpoint = "csrf" | "status"
+export type ClientEndpoint = "csrf" | "status" | "auth"
 
 export interface InternalOptions {
   url: InternalUrl

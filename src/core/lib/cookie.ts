@@ -5,6 +5,7 @@ export interface Cookie extends CookieOption {
 }
 
 export function defaultCookies(useSecureCookies: boolean): CookiesOptions {
+  const cookiePrefix = useSecureCookies ? "__Secure-" : ""
   return {
     csrfToken: {
       // Default to __Host- for CSRF token for additional protection if using useSecureCookies
@@ -17,5 +18,15 @@ export function defaultCookies(useSecureCookies: boolean): CookiesOptions {
         secure: useSecureCookies,
       },
     },
+    clientAuthVerificationToken: {
+      name: `${cookiePrefix}flaship-client.auth-verification-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 15 * 60,
+        path: "/",
+        secure: useSecureCookies,
+      },
+    }
   }
 }

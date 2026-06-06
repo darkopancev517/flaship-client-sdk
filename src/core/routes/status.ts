@@ -37,8 +37,6 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
       const data = await res.json()
 
-      console.log(data)
-
       return {
         status: res.status,
         body: {

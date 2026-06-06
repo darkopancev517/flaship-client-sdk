@@ -32,6 +32,7 @@
     "cookie": "^1.1.1",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
+    "set-cookie-parser": "^3.1.0",
     "zod-validation-error": "^5.0.0"
   }
 }

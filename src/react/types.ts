@@ -4,9 +4,16 @@ export type Params =
   | Record<string, string>
   | URLSearchParams
 
-export interface ServerResponse {
+export interface ClientResponse {
   error: string
   status: number
   ok: boolean
   url: string | null
 }
+
+export type AuthAction =
+  | "register"
+  | "confirm"
+  | "signin"
+  | "signout"
+  | "resetpassword"
