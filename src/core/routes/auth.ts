@@ -120,7 +120,6 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
                 provider: "email",
                 email,
                 password,
-                callbackUrl: options.url.origin,
               }),
             }
 
