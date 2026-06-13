@@ -65,10 +65,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
           throw new Error(error)
         }
 
-        // TODO: implement redirect for error and success scenario
-        console.log("CLIENT REGISTER SUCCESS")
-
-        return { status: 200, body: {} }
+        return { status: 200, body: {}, redirect: options.url.origin }
       }
 
       default:
@@ -80,7 +77,11 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
     }
   } catch (error) {
     const { message, status } = parseError(error)
-    return { status: status, body: { error: message } }
+    return {
+      status: status,
+      body: { error: message },
+      redirect: `${options.url.origin}?error=${encodeURIComponent(message)}`,
+    }
   }
 }
 
