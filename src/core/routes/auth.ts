@@ -1,18 +1,21 @@
 import * as z from "zod"
-import { parseSetCookie } from "set-cookie-parser"
+import { createHash } from "crypto"
 
-import * as cookie from "../lib/cookie"
 import type { RouteParams, ResponseInternal } from "../types"
 import { parseError } from "../lib/utils"
+import { fetchServer } from "../lib/server-fetch"
 
 const postQueryParams = z.object({
   action: z.enum(["register", "confirm", "signin", "signout", "resetpassword"]),
 })
 
-const registerAuthSchema = z.object({
+const providerSchema = z.object({
   provider: z.enum(["email", "google", "github"]),
-  email: z.string().optional(),
-  password: z.string().optional(),
+})
+
+const emailAuthSchema = z.object({
+  email: z.string(),
+  password: z.string().min(4),
 })
 
 const getQueryParams = z.object({
@@ -43,25 +46,16 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
           throw new Error("Invalid verification cookie")
         }
 
-        const reqOptions: RequestInit = {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${options.serverAuthToken}`,
-          },
-          body: JSON.stringify({
+        const res = await fetchServer("auth", options, {
+          params: { action },
+          body: {
             tokenHash: token_hash,
             verificationCookie,
-          }),
-        }
-
-        const res = await fetch(
-          `${options.serverUrl.base}/auth?action=confirm`,
-          reqOptions
-        )
+          },
+        })
 
         if (!res.ok) {
-          const { error } = await res.json()
+          const { error } = res.data
           throw new Error(error)
         }
 
@@ -88,7 +82,6 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 export async function POST(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
   const { query: reqQuery, body: reqBody } = req
-  const cookies: cookie.Cookie[] = []
 
   try {
     const query = postQueryParams.safeParse(reqQuery)
@@ -98,59 +91,82 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
     }
 
     const { action } = query.data
+    const { provider } = providerSchema.parse(reqBody)
 
     switch (action) {
       case "register": {
-        const body = registerAuthSchema.parse(reqBody)
-
-        const { provider, email, password } = body
-
         switch (provider) {
           case "email": {
-            if (!email || !password) {
-              throw new Error("Invalid email auth register params")
-            }
+            const { email, password } = emailAuthSchema.parse(reqBody)
 
-            const reqOptions: RequestInit = {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${options.serverAuthToken}`,
-              },
-              body: JSON.stringify({
+            const res = await fetchServer("auth", options, {
+              params: { action },
+              body: {
                 provider: "email",
                 email,
                 password,
-              }),
-            }
-
-            const res = await fetch(
-              `${options.serverUrl.base}/auth?action=register`,
-              reqOptions
-            )
+              },
+            })
 
             if (!res.ok) {
-              const { error } = await res.json()
+              const { error } = res.data
               throw new Error(error)
             }
 
-            const setCookies = parseSetCookie(res)
+            return { status: res.status, body: {}, cookies: res.cookies }
+          }
 
-            for (const cookie of setCookies) {
-              cookies.push({
-                name: cookie.name,
-                value: cookie.value,
-                options: {
-                  httpOnly: cookie.httpOnly,
-                  sameSite: "lax",
-                  maxAge: cookie.maxAge,
-                  path: cookie.path,
-                  secure: cookie.secure ?? false,
-                },
-              })
+          default:
+        }
+      }
+
+      case "signin": {
+        switch (provider) {
+          case "email": {
+            const { email, password } = emailAuthSchema.parse(reqBody)
+
+            const res = await fetchServer("auth", options, {
+              params: { action },
+              body: {
+                provider: "email",
+                email,
+                password,
+              },
+            })
+
+            if (!res.ok) {
+              const { error } = res.data
+              throw new Error(error)
             }
 
-            return { status: res.status, body: {}, cookies }
+            const cookies = res.cookies
+
+            const sessionCookie = cookies?.find(
+              (cookie) =>
+                cookie.name === options.cookies.clientSessionToken.name
+            )
+
+            // Verify session cookie
+            if (sessionCookie) {
+              const sessionCookieValue = sessionCookie.value
+
+              const [clientId, sessionToken, sessionTokenHash] =
+                sessionCookieValue.split("|")
+
+              if (options.clientId !== clientId) {
+                throw new Error("Invalid session client ID")
+              }
+
+              const expectedSessionTokenHash = createHash("sha256")
+                .update(`${sessionToken}${options.clientApiKey}`)
+                .digest("hex")
+
+              if (expectedSessionTokenHash !== sessionTokenHash) {
+                throw new Error("Invalid session token")
+              }
+
+              return { status: res.status, body: {}, cookies: res.cookies }
+            }
           }
 
           default:

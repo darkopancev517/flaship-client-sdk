@@ -20,13 +20,11 @@ export function defaultCookies(useSecureCookies: boolean): CookiesOptions {
     },
     clientAuthVerificationToken: {
       name: `${cookiePrefix}flaship-client.auth-verification-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        maxAge: 15 * 60,
-        path: "/",
-        secure: useSecureCookies,
-      },
-    }
+      options: {}, // this options will be set by server
+    },
+    clientSessionToken: {
+      name: `${cookiePrefix}flaship-client.session-token`,
+      options: {}, // this options will be set by server
+    },
   }
 }

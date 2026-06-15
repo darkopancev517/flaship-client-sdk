@@ -13,7 +13,9 @@ export interface CookieOption {
 
 export interface CookiesOptions {
   csrfToken: CookieOption
+
   clientAuthVerificationToken: CookieOption
+  clientSessionToken: CookieOption
 }
 
 export interface ClientOptions {

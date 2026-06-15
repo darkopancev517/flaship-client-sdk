@@ -28,7 +28,7 @@ export async function getConnectionStatus(): Promise<boolean> {
 
 export async function signUpWithEmail({
   email,
-  password
+  password,
 }: {
   email: string
   password: string
@@ -38,7 +38,23 @@ export async function signUpWithEmail({
       provider: "email",
       email,
       password,
-    }
+    },
+  })
+}
+
+export async function signInWithEmail({
+  email,
+  password,
+}: {
+  email: string
+  password: string
+}): Promise<ClientResponse> {
+  return await auth("signin", {
+    body: {
+      provider: "email",
+      email,
+      password,
+    },
   })
 }
 
