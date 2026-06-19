@@ -7,6 +7,7 @@ import type {
   RequestInternal,
   ResponseInternal,
 } from "./types"
+import { SessionStore } from "./lib/cookie"
 import { detectOrigin } from "../utils/detect-origin"
 import { init } from "./init"
 
@@ -42,7 +43,7 @@ export async function ClientHandler<
 
   const { options, cookies } = await init({ req, clientOptions })
 
-  //const sessionStore = new SessionStore(options.cookies.sessionToken, req)
+  const sessionStore = new SessionStore(options.cookies.clientSessionToken, req)
 
   if (method === "GET") {
     switch (endpoint) {
@@ -82,6 +83,12 @@ export async function ClientHandler<
           options,
         })
         return { ...auth }
+      }
+
+      case "session": {
+        const session = await routes.session({ options, sessionStore })
+        if (session.cookies) cookies.push(...session.cookies)
+        return { ...session, cookies } as any
       }
 
       default:

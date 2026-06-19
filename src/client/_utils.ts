@@ -1,8 +1,13 @@
 import type { IncomingMessage } from "http"
 
+import type { Session } from "../core/types"
+
 export interface ClientConfig {
   baseUrl: string
   basePath: string
+  _session?: Session | null | undefined
+  _lastSync: number
+  _getSession: (...args: any[]) => any
 }
 
 export interface CtxOrReq {
@@ -53,4 +58,9 @@ export async function fetchData<T = any>(
 
     throw new Error("An unexpected error occurred")
   }
+}
+
+/** Returns the number of seconds elapsed since January 1, 1970 00:00:00 UTC. */
+export function now() {
+  return Math.floor(Date.now() / 1000)
 }

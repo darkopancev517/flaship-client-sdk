@@ -29,7 +29,7 @@ export interface ClientOptions {
   cookies?: Partial<CookiesOptions>
 }
 
-export type ClientEndpoint = "csrf" | "status" | "auth"
+export type ClientEndpoint = "csrf" | "status" | "auth" | "session"
 
 export interface InternalOptions {
   url: InternalUrl
@@ -75,4 +75,15 @@ export interface ResponseInternal<
 export interface RouteParams {
   req: RequestInternal
   options: InternalOptions
+}
+
+export interface Session {
+  user?: {
+    id?: string | null
+    name?: string | null
+    email?: string | null
+    image?: string | null
+    provider?: string | null
+  },
+  expires: number // Unix Timestamp
 }
