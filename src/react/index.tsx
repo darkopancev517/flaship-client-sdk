@@ -8,7 +8,13 @@ import {
   now,
 } from "../client/_utils"
 import { parseUrl } from "../utils/parse-url"
-import type { Params, ClientResponse, AuthAction } from "./types"
+import type {
+  Params,
+  ClientResponse,
+  AuthAction,
+  SignOutParams,
+  SignOutResponse,
+} from "./types"
 import type { Session } from "../core/types"
 
 const __CLIENT: ClientConfig = {
@@ -68,6 +74,39 @@ export async function signInWithEmail({
       password,
     },
   })
+}
+
+export async function signOut<R extends boolean = true>(
+  options?: SignOutParams<R>
+): Promise<R extends true ? undefined : SignOutResponse> {
+  const { callbackUrl = window.location.href } = options ?? {}
+  const baseUrl = apiBaseUrl(__CLIENT)
+
+  const res = await fetch(`${baseUrl}/signout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    // @ts-expect-error
+    body: new URLSearchParams({
+      csrfToken: await getCsrfToken(),
+      json: true,
+    }),
+  })
+
+  const data = await res.json()
+
+  if (options?.redirect ?? true) {
+    const url = data.url ?? callbackUrl
+    window.location.href = url
+    if (url.includes("#")) window.location.reload()
+    // @ts-expect-error
+    return
+  }
+
+  await __CLIENT._getSession({ event: "storage" })
+
+  return data
 }
 
 export async function auth(

@@ -15,5 +15,13 @@ export type AuthAction =
   | "register"
   | "confirm"
   | "signin"
-  | "signout"
   | "resetpassword"
+
+export interface SignOutResponse {
+  url: string
+}
+
+export interface SignOutParams<R extends boolean = true> {
+  callbackUrl?: string
+  redirect?: R
+}

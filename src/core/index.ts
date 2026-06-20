@@ -101,8 +101,18 @@ export async function ClientHandler<
             req,
             options,
           })
-          return { ...auth }
+          if (auth.cookies) cookies.push(...auth.cookies)
+          return { ...auth, cookies }
         }
+      }
+      
+      case "signout": {
+        if (options.csrfTokenVerified) {
+          const signout = await routes.signout({ options, sessionStore })
+          if (signout.cookies) cookies.push(...signout.cookies)
+          return { ...signout, cookies }
+        }
+        return { redirect: `${options.url}/signout?csrf=true`, cookies }
       }
 
       default:

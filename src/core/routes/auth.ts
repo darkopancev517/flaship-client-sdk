@@ -1,12 +1,13 @@
 import * as z from "zod"
 import { createHash } from "crypto"
 
+import * as cookie from "../lib/cookie"
 import type { RouteParams, ResponseInternal } from "../types"
 import { parseError } from "../lib/utils"
 import { fetchServer } from "../lib/server-fetch"
 
 const postQueryParams = z.object({
-  action: z.enum(["register", "confirm", "signin", "signout", "resetpassword"]),
+  action: z.enum(["register", "confirm", "signin", "resetpassword"]),
 })
 
 const providerSchema = z.object({
@@ -82,6 +83,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 export async function POST(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
   const { query: reqQuery, body: reqBody } = req
+  const cookies: cookie.Cookie[] = []
 
   try {
     const query = postQueryParams.safeParse(reqQuery)
@@ -139,9 +141,7 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
               throw new Error(error)
             }
 
-            const cookies = res.cookies
-
-            const sessionCookie = cookies?.find(
+            const sessionCookie = res.cookies?.find(
               (cookie) =>
                 cookie.name === options.cookies.clientSessionToken.name
             )
@@ -165,7 +165,13 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
                 throw new Error("Invalid session token")
               }
 
-              return { status: res.status, body: {}, cookies: res.cookies }
+              cookies.push({
+                name: options.cookies.clientSessionToken.name,
+                value: sessionToken,
+                options: options.cookies.clientSessionToken.options,
+              })
+
+              return { status: res.status, body: {}, cookies }
             }
           }
 

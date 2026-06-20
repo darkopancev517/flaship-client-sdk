@@ -29,7 +29,7 @@ export interface ClientOptions {
   cookies?: Partial<CookiesOptions>
 }
 
-export type ClientEndpoint = "csrf" | "status" | "auth" | "session"
+export type ClientEndpoint = "csrf" | "status" | "auth" | "session" | "signout"
 
 export interface InternalOptions {
   url: InternalUrl
@@ -84,6 +84,6 @@ export interface Session {
     email?: string | null
     image?: string | null
     provider?: string | null
-  },
+  }
   expires: number // Unix Timestamp
 }

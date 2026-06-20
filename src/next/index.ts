@@ -19,7 +19,7 @@ async function ClientApiHandler(
   if (handler.redirect) {
     // If the request expects a return URL, send it as JSON
     // instead of doing an actual redirect.
-    if (req.body?.json !== true) {
+    if (req.body?.json !== "true") {
       res.status(302).setHeader("Location", handler.redirect)
       res.end()
       return

@@ -1,5 +1,3 @@
-import { createHash } from "crypto"
-
 import { SessionStore } from "../lib/cookie"
 import type { InternalOptions, ResponseInternal, Session } from "../types"
 import { now } from "../../client/_utils"
@@ -34,25 +32,11 @@ export default async function session(
     cookies: [],
   }
 
-  const sessionCookie = sessionStore.value
+  const sessionToken = sessionStore.value
 
-  if (!sessionCookie) return response
+  if (!sessionToken) return response
 
   try {
-    const [clientId, sessionToken, sessionTokenHash] = sessionCookie.split("|")
-
-    if (clientId !== options.clientId) {
-      throw new Error("Invalid client ID")
-    }
-
-    const expectedSessionTokenHash = createHash("sha256")
-      .update(`${sessionToken}${options.clientApiKey}`)
-      .digest("hex")
-
-    if (expectedSessionTokenHash !== sessionTokenHash) {
-      throw new Error("Invalid session token")
-    }
-
     const decodedToken = (await options.jwt.decode({
       token: sessionToken,
       secret: options.clientApiKey,
