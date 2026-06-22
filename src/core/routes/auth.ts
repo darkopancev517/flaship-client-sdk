@@ -14,20 +14,34 @@ const providerSchema = z.object({
   provider: z.enum(["email", "google", "github"]),
 })
 
+const resetPasswordTypeSchema = z.object({
+  type: z.enum(["request", "confirm"]),
+})
+
+const resetPasswordRequestSchema = z.object({
+  email: z.email(),
+})
+
+const resetPasswordConfirmSchema = z.object({
+  tokenHash: z.string(),
+  newPassword: z.string().min(4),
+})
+
 const emailAuthSchema = z.object({
   email: z.string(),
   password: z.string().min(4),
 })
 
 const getQueryParams = z.object({
-  action: z.enum(["confirm", "resetpassword"]),
+  action: z.enum(["confirm"]),
   token_hash: z.string(),
   provider: z.string().optional(),
 })
 
 export async function GET(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
-  const { query: reqQuery, cookies } = req
+  const { query: reqQuery, cookies: reqCookies } = req
+  const cookies: cookie.Cookie[] = []
 
   try {
     const query = getQueryParams.safeParse(reqQuery)
@@ -41,7 +55,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
     switch (action) {
       case "confirm": {
         const verificationCookie =
-          cookies?.[options.cookies.clientAuthVerificationToken.name]
+          reqCookies?.[options.cookies.clientAuthVerificationToken.name]
 
         if (!verificationCookie) {
           throw new Error("Invalid verification cookie")
@@ -60,7 +74,17 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
           throw new Error(error)
         }
 
-        return { status: 200, body: {}, redirect: options.url.origin }
+        // Delete verification cookie
+        cookies.push({
+          name: options.cookies.clientAuthVerificationToken.name,
+          value: "",
+          options: {
+            ...options.cookies.clientAuthVerificationToken.options,
+            maxAge: 0,
+          },
+        })
+
+        return { status: 200, body: {}, redirect: options.url.origin, cookies }
       }
 
       default:
@@ -82,7 +106,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
 export async function POST(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
-  const { query: reqQuery, body: reqBody } = req
+  const { query: reqQuery, body: reqBody, cookies: reqCookies } = req
   const cookies: cookie.Cookie[] = []
 
   try {
@@ -115,7 +139,20 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
               throw new Error(error)
             }
 
-            return { status: res.status, body: {}, cookies: res.cookies }
+            const verificationCookie = res.cookies?.find(
+              (cookie) =>
+                cookie.name === options.cookies.clientAuthVerificationToken.name
+            )
+
+            if (verificationCookie) {
+              cookies.push({
+                name: options.cookies.clientAuthVerificationToken.name,
+                value: verificationCookie.value,
+                options: options.cookies.clientAuthVerificationToken.options,
+              })
+
+              return { status: res.status, body: {}, cookies }
+            }
           }
 
           default:
@@ -179,12 +216,100 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
         }
       }
 
+      case "resetpassword": {
+        if (provider === "email") {
+          const { type } = resetPasswordTypeSchema.parse(reqBody)
+
+          switch (type) {
+            case "request": {
+              const { email } = resetPasswordRequestSchema.parse(reqBody)
+
+              const res = await fetchServer("auth", options, {
+                params: { action },
+                body: {
+                  provider,
+                  type,
+                  email,
+                },
+              })
+
+              if (!res.ok) {
+                const { error } = res.data
+                throw new Error(error)
+              }
+
+              const resetPasswordCookie = res.cookies?.find(
+                (cookie) =>
+                  cookie.name === options.cookies.clientResetPasswordToken.name
+              )
+
+              if (resetPasswordCookie) {
+                cookies.push({
+                  name: options.cookies.clientResetPasswordToken.name,
+                  value: resetPasswordCookie.value,
+                  options: options.cookies.clientResetPasswordToken.options,
+                })
+
+                return { status: res.status, body: {}, cookies }
+              }
+            }
+
+            case "confirm": {
+              const { tokenHash, newPassword } =
+                resetPasswordConfirmSchema.parse(reqBody)
+
+              const resetPasswordCookie =
+                reqCookies?.[options.cookies.clientResetPasswordToken.name]
+
+              if (!resetPasswordCookie) {
+                throw new Error("Invalid reset password cookie")
+              }
+
+              const res = await fetchServer("auth", options, {
+                params: { action },
+                body: {
+                  provider,
+                  type,
+                  tokenHash,
+                  resetPasswordCookie,
+                  newPassword,
+                },
+              })
+
+              if (!res.ok) {
+                const { error } = res.data
+                throw new Error(error)
+              }
+
+              // Delete reset password cookie
+              cookies.push({
+                name: options.cookies.clientResetPasswordToken.name,
+                value: "",
+                options: {
+                  ...options.cookies.clientResetPasswordToken.options,
+                  maxAge: 0,
+                },
+              })
+
+              return {
+                status: 200,
+                body: {},
+                redirect: options.url.origin,
+                cookies,
+              }
+            }
+
+            default:
+          }
+        }
+      }
+
       default:
     }
 
     return {
       status: 400,
-      body: { error: `Invalid auth ${action} action params` },
+      body: { error: `Failed to handle auth ${action}.` },
     }
   } catch (error) {
     const { message, status } = parseError(error)

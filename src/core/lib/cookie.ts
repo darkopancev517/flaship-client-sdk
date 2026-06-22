@@ -41,6 +41,16 @@ export function defaultCookies(useSecureCookies: boolean): CookiesOptions {
         secure: useSecureCookies,
       },
     },
+    clientResetPasswordToken: {
+      name: `${cookiePrefix}flaship-client.reset-password-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 15 * 60,
+        secure: useSecureCookies,
+      },
+    },
   }
 }
 

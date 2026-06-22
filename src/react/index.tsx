@@ -76,6 +76,38 @@ export async function signInWithEmail({
   })
 }
 
+export async function resetPasswordRequest({
+  email,
+}: {
+  email: string
+}): Promise<ClientResponse> {
+  return await auth("resetpassword", {
+    body: {
+      provider: "email",
+      type: "request",
+      email,
+    },
+  })
+}
+
+export async function resetPasswordConfirm({
+  tokenHash,
+  newPassword,
+}: {
+  tokenHash: string
+  newPassword: string
+}): Promise<ClientResponse> {
+  return await auth("resetpassword", {
+    body: {
+      provider: "email",
+      type: "confirm",
+      tokenHash,
+      newPassword,
+      json: true,
+    },
+  })
+}
+
 export async function signOut<R extends boolean = true>(
   options?: SignOutParams<R>
 ): Promise<R extends true ? undefined : SignOutResponse> {

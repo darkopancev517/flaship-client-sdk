@@ -16,6 +16,7 @@ export interface CookiesOptions {
 
   clientAuthVerificationToken: CookieOption
   clientSessionToken: CookieOption
+  clientResetPasswordToken: CookieOption
 }
 
 export interface ClientOptions {

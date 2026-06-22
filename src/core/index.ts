@@ -82,7 +82,8 @@ export async function ClientHandler<
           req,
           options,
         })
-        return { ...auth }
+        if (auth.cookies) cookies.push(...auth.cookies)
+        return { ...auth, cookies }
       }
 
       case "session": {
