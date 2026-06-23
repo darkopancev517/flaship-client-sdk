@@ -11,12 +11,6 @@ export interface ClientResponse {
   url: string | null
 }
 
-export type AuthAction =
-  | "register"
-  | "confirm"
-  | "signin"
-  | "resetpassword"
-
 export interface SignOutResponse {
   url: string
 }

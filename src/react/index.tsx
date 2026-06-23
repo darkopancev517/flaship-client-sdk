@@ -11,7 +11,6 @@ import { parseUrl } from "../utils/parse-url"
 import type {
   Params,
   ClientResponse,
-  AuthAction,
   SignOutParams,
   SignOutResponse,
 } from "./types"
@@ -51,9 +50,8 @@ export async function signUpWithEmail({
   email: string
   password: string
 }): Promise<ClientResponse> {
-  return await auth("register", {
+  return await auth("register/email", {
     body: {
-      provider: "email",
       email,
       password,
     },
@@ -67,9 +65,8 @@ export async function signInWithEmail({
   email: string
   password: string
 }): Promise<ClientResponse> {
-  return await auth("signin", {
+  return await auth("signin/email", {
     body: {
-      provider: "email",
       email,
       password,
     },
@@ -81,9 +78,8 @@ export async function resetPasswordRequest({
 }: {
   email: string
 }): Promise<ClientResponse> {
-  return await auth("resetpassword", {
+  return await auth("resetpassword/email", {
     body: {
-      provider: "email",
       type: "request",
       email,
     },
@@ -97,9 +93,8 @@ export async function resetPasswordConfirm({
   tokenHash: string
   newPassword: string
 }): Promise<ClientResponse> {
-  return await auth("resetpassword", {
+  return await auth("resetpassword/email", {
     body: {
-      provider: "email",
       type: "confirm",
       tokenHash,
       newPassword,
@@ -141,15 +136,15 @@ export async function signOut<R extends boolean = true>(
   return data
 }
 
-export async function auth(
-  action: AuthAction,
+async function auth(
+  path: string,
   req: {
     params?: Params
     body?: Record<string, unknown>
   }
 ): Promise<ClientResponse> {
   const baseUrl = apiBaseUrl(__CLIENT)
-  const authUrl = `${baseUrl}/auth?action=${action}${req.params ? `&${new URLSearchParams(req.params)}` : ""}`
+  const authUrl = `${baseUrl}/auth/${path}${req.params ? `?${new URLSearchParams(req.params)}` : ""}`
 
   const response = await fetch(authUrl, {
     method: "POST",

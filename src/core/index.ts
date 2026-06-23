@@ -2,6 +2,7 @@ import type { NextApiRequest } from "next"
 
 import * as routes from "./routes"
 import type {
+    ClientAction,
   ClientEndpoint,
   ClientOptions,
   RequestInternal,
@@ -26,6 +27,8 @@ async function toInternalRequest(
     body,
     origin: detectOrigin(host, headers?.["x-forwarded-proto"]),
     endpoint: client?.[0] as ClientEndpoint,
+    action: client?.[1] as ClientAction,
+    providerId: client?.[2],
   }
 }
 

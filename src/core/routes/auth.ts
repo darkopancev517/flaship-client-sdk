@@ -6,14 +6,6 @@ import type { RouteParams, ResponseInternal } from "../types"
 import { parseError } from "../lib/utils"
 import { fetchServer } from "../lib/server-fetch"
 
-const postQueryParams = z.object({
-  action: z.enum(["register", "confirm", "signin", "resetpassword"]),
-})
-
-const providerSchema = z.object({
-  provider: z.enum(["email", "google", "github"]),
-})
-
 const resetPasswordTypeSchema = z.object({
   type: z.enum(["request", "confirm"]),
 })
@@ -32,59 +24,57 @@ const emailAuthSchema = z.object({
   password: z.string().min(4),
 })
 
-const getQueryParams = z.object({
-  action: z.enum(["confirm"]),
+const tokenHashSchema = z.object({
   token_hash: z.string(),
-  provider: z.string().optional(),
 })
 
 export async function GET(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
-  const { query: reqQuery, cookies: reqCookies } = req
+  const { action, providerId, query: reqQuery, cookies: reqCookies } = req
   const cookies: cookie.Cookie[] = []
 
   try {
-    const query = getQueryParams.safeParse(reqQuery)
-
-    if (!query.success) {
-      throw new Error("Invalid auth query")
-    }
-
-    const { action, token_hash } = query.data
-
     switch (action) {
       case "confirm": {
-        const verificationCookie =
-          reqCookies?.[options.cookies.clientAuthVerificationToken.name]
+        if (providerId === "email") {
+          const { token_hash } = tokenHashSchema.parse(reqQuery)
 
-        if (!verificationCookie) {
-          throw new Error("Invalid verification cookie")
+          const verificationCookie =
+            reqCookies?.[options.cookies.clientAuthVerificationToken.name]
+
+          if (!verificationCookie) {
+            throw new Error("Invalid verification cookie")
+          }
+
+          const res = await fetchServer("auth/confirm/email", options, {
+            body: {
+              tokenHash: token_hash,
+              verificationCookie,
+            },
+          })
+
+          if (!res.ok) {
+            const { error } = res.data
+            throw new Error(error)
+          }
+
+          // Delete verification cookie
+          cookies.push({
+            name: options.cookies.clientAuthVerificationToken.name,
+            value: "",
+            options: {
+              ...options.cookies.clientAuthVerificationToken.options,
+              maxAge: 0,
+            },
+          })
+
+          return {
+            status: 200,
+            body: {},
+            redirect: options.url.origin,
+            cookies,
+          }
         }
-
-        const res = await fetchServer("auth", options, {
-          params: { action },
-          body: {
-            tokenHash: token_hash,
-            verificationCookie,
-          },
-        })
-
-        if (!res.ok) {
-          const { error } = res.data
-          throw new Error(error)
-        }
-
-        // Delete verification cookie
-        cookies.push({
-          name: options.cookies.clientAuthVerificationToken.name,
-          value: "",
-          options: {
-            ...options.cookies.clientAuthVerificationToken.options,
-            maxAge: 0,
-          },
-        })
-
-        return { status: 200, body: {}, redirect: options.url.origin, cookies }
       }
 
       default:
@@ -92,7 +82,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
     return {
       status: 400,
-      body: { error: `Failed to handle auth ${action} request` },
+      body: { error: `Failed to handle auth ${action ?? ""} request` },
     }
   } catch (error) {
     const { message, status } = parseError(error)
@@ -106,29 +96,23 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
 export async function POST(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
-  const { query: reqQuery, body: reqBody, cookies: reqCookies } = req
+  const {
+    action,
+    providerId,
+    body: reqBody,
+    cookies: reqCookies,
+  } = req
   const cookies: cookie.Cookie[] = []
 
   try {
-    const query = postQueryParams.safeParse(reqQuery)
-
-    if (!query.success) {
-      throw new Error("Invalid auth query")
-    }
-
-    const { action } = query.data
-    const { provider } = providerSchema.parse(reqBody)
-
     switch (action) {
       case "register": {
-        switch (provider) {
+        switch (providerId) {
           case "email": {
             const { email, password } = emailAuthSchema.parse(reqBody)
 
-            const res = await fetchServer("auth", options, {
-              params: { action },
+            const res = await fetchServer("auth/register/email", options, {
               body: {
-                provider: "email",
                 email,
                 password,
               },
@@ -160,14 +144,12 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
       }
 
       case "signin": {
-        switch (provider) {
+        switch (providerId) {
           case "email": {
             const { email, password } = emailAuthSchema.parse(reqBody)
 
-            const res = await fetchServer("auth", options, {
-              params: { action },
+            const res = await fetchServer("auth/signin/email", options, {
               body: {
-                provider: "email",
                 email,
                 password,
               },
@@ -217,21 +199,23 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
       }
 
       case "resetpassword": {
-        if (provider === "email") {
+        if (providerId === "email") {
           const { type } = resetPasswordTypeSchema.parse(reqBody)
 
           switch (type) {
             case "request": {
               const { email } = resetPasswordRequestSchema.parse(reqBody)
 
-              const res = await fetchServer("auth", options, {
-                params: { action },
-                body: {
-                  provider,
-                  type,
-                  email,
-                },
-              })
+              const res = await fetchServer(
+                "auth/resetpassword/email",
+                options,
+                {
+                  body: {
+                    type,
+                    email,
+                  },
+                }
+              )
 
               if (!res.ok) {
                 const { error } = res.data
@@ -265,16 +249,18 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
                 throw new Error("Invalid reset password cookie")
               }
 
-              const res = await fetchServer("auth", options, {
-                params: { action },
-                body: {
-                  provider,
-                  type,
-                  tokenHash,
-                  resetPasswordCookie,
-                  newPassword,
-                },
-              })
+              const res = await fetchServer(
+                "auth/resetpassword/email",
+                options,
+                {
+                  body: {
+                    type,
+                    tokenHash,
+                    resetPasswordCookie,
+                    newPassword,
+                  },
+                }
+              )
 
               if (!res.ok) {
                 const { error } = res.data
@@ -309,7 +295,7 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
 
     return {
       status: 400,
-      body: { error: `Failed to handle auth ${action}.` },
+      body: { error: `Failed to handle auth ${action ?? ""}.` },
     }
   } catch (error) {
     const { message, status } = parseError(error)

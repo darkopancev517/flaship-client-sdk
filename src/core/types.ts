@@ -31,6 +31,7 @@ export interface ClientOptions {
 }
 
 export type ClientEndpoint = "csrf" | "status" | "auth" | "session" | "signout"
+export type ClientAction = "register" | "confirm" | "signin" | "resetpassword"
 
 export interface InternalOptions {
   url: InternalUrl
@@ -56,6 +57,8 @@ export interface RequestInternal {
   query?: Record<string, any>
   body?: Record<string, any>
   endpoint: ClientEndpoint
+  action?: ClientAction
+  providerId?: string
 }
 
 export interface ClientHeader {
