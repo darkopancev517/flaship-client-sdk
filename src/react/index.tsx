@@ -43,34 +43,31 @@ export async function getConnectionStatus(): Promise<boolean> {
   return response?.connection ?? false
 }
 
-export async function signUpWithEmail({
-  email,
-  password,
-}: {
-  email: string
-  password: string
-}): Promise<ClientResponse> {
-  return await auth("register/email", {
-    body: {
-      email,
-      password,
-    },
+export async function signUp(
+  provider: string,
+  params?: Record<string, unknown>
+): Promise<ClientResponse> {
+  return await auth(`register/${provider}`, {
+    body: params,
   })
 }
 
-export async function signInWithEmail({
-  email,
-  password,
-}: {
-  email: string
-  password: string
-}): Promise<ClientResponse> {
-  return await auth("signin/email", {
+export async function signIn(
+  provider: string,
+  params?: Record<string, unknown>
+): Promise<ClientResponse> {
+  const res = await auth(`signin/${provider}`, {
     body: {
-      email,
-      password,
+      ...params,
+      json: true,
     },
   })
+
+  if (res.ok) {
+    window.location.href = res.url ?? "/"
+  }
+
+  return res
 }
 
 export async function resetPasswordRequest({

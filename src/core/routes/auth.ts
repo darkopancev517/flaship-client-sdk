@@ -96,12 +96,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
 export async function POST(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
-  const {
-    action,
-    providerId,
-    body: reqBody,
-    cookies: reqCookies,
-  } = req
+  const { action, providerId, body: reqBody, cookies: reqCookies } = req
   const cookies: cookie.Cookie[] = []
 
   try {
@@ -192,6 +187,29 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
 
               return { status: res.status, body: {}, cookies }
             }
+          }
+
+          case "google": {
+            const res = await fetchServer("auth/signin/google", options)
+
+            if (!res.ok) {
+              const { error } = res.data
+              throw new Error(error)
+            }
+
+            const { redirect } = res.data
+
+            if (res.cookies) {
+              for (const cookie of res.cookies) {
+                cookies.push({
+                  name: cookie.name,
+                  value: cookie.value,
+                  options: cookie.options,
+                })
+              }
+            }
+
+            return { status: res.status, body: {}, redirect, cookies }
           }
 
           default:

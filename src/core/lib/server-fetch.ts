@@ -7,7 +7,7 @@ import type { Cookie } from "./cookie"
 export async function fetchServer<T = any>(
   path: string,
   options: InternalOptions,
-  req: {
+  req?: {
     params?: Params
     body?: Record<string, unknown>
   }
@@ -19,7 +19,7 @@ export async function fetchServer<T = any>(
 }> {
   const cookies: Cookie[] = []
 
-  const url = `${options.serverUrl.base}/${path}${req.params ? `?${new URLSearchParams(req.params)}` : ""}`
+  const url = `${options.serverUrl.base}/${path}${req?.params ? `?${new URLSearchParams(req.params)}` : ""}`
 
   const request: RequestInit = {
     headers: {
