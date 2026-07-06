@@ -1,4 +1,5 @@
 import { parseSetCookie } from "set-cookie-parser"
+import { serialize } from "cookie"
 
 import type { InternalOptions } from "../types"
 import type { Params } from "../../react/types"
@@ -10,6 +11,7 @@ export async function fetchServer<T = any>(
   req?: {
     params?: Params
     body?: Record<string, unknown>
+    cookies?: Cookie[]
   }
 ): Promise<{
   status: number
@@ -17,16 +19,21 @@ export async function fetchServer<T = any>(
   data: T | null
   cookies?: Cookie[]
 }> {
-  const cookies: Cookie[] = []
-
   const url = `${options.serverUrl.base}/${path}${req?.params ? `?${new URLSearchParams(req.params)}` : ""}`
 
-  const request: RequestInit = {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${options.serverAuthToken}`,
-    },
+  const headers = new Headers()
+  headers.append("Content-Type", "application/json")
+  headers.append("Authorization", `Bearer ${options.serverAuthToken}`)
+
+  if (req?.cookies) {
+    for (const cookie of req.cookies) {
+      const { name, value, options } = cookie
+      const cookieHeader = serialize(name, value, options)
+      headers.append("Set-Cookie", cookieHeader)
+    }
   }
+
+  const request: RequestInit = { headers }
 
   if (req?.body) {
     request.body = JSON.stringify(req.body)
@@ -35,6 +42,8 @@ export async function fetchServer<T = any>(
 
   const res = await fetch(url, request)
   const data = await res.json()
+
+  const cookies: Cookie[] = []
 
   if (res.ok) {
     const setCookies = parseSetCookie(res)

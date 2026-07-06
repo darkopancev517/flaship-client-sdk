@@ -82,12 +82,38 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
       case "callback": {
         switch (providerId) {
           case "google": {
+            const clientPkceCodeVerifierCookie =
+              reqCookies?.[options.cookies.clientPkceCodeVerifier.name]
+
+            if (!clientPkceCodeVerifierCookie) {
+              throw new Error("Client PKCE code verifier cookie was missing")
+            }
+
+            const clientStateCookie =
+              reqCookies?.[options.cookies.clientState.name]
+
+            if (!clientStateCookie) {
+              throw new Error("Client state cookie was missing")
+            }
+
             const res = await fetchServer("auth/callback/google", options, {
               body: {
                 query,
                 body,
                 method,
               },
+              cookies: [
+                {
+                  name: options.cookies.clientPkceCodeVerifier.name,
+                  value: clientPkceCodeVerifierCookie,
+                  options: options.cookies.clientPkceCodeVerifier.options,
+                },
+                {
+                  name: options.cookies.clientState.name,
+                  value: clientStateCookie,
+                  options: options.cookies.clientState.options,
+                },
+              ],
             })
 
             if (!res.ok) {
@@ -297,7 +323,7 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
                 reqCookies?.[options.cookies.clientResetPasswordToken.name]
 
               if (!resetPasswordCookie) {
-                throw new Error("Invalid reset password cookie")
+                throw new Error("Reset password cookie was missing")
               }
 
               const res = await fetchServer(
@@ -307,9 +333,15 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
                   body: {
                     type,
                     tokenHash,
-                    resetPasswordCookie,
                     newPassword,
                   },
+                  cookies: [
+                    {
+                      name: options.cookies.clientResetPasswordToken.name,
+                      value: resetPasswordCookie,
+                      options: options.cookies.clientResetPasswordToken.options,
+                    },
+                  ],
                 }
               )
 
