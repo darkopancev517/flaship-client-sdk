@@ -14,9 +14,12 @@ export interface CookieOption {
 export interface CookiesOptions {
   csrfToken: CookieOption
 
-  clientAuthVerificationToken: CookieOption
+  clientVerificationToken: CookieOption
   clientSessionToken: CookieOption
   clientResetPasswordToken: CookieOption
+  clientPkceCodeVerifier: CookieOption
+  clientState: CookieOption
+  clientNonce: CookieOption
 }
 
 export interface ClientOptions {
@@ -31,7 +34,7 @@ export interface ClientOptions {
 }
 
 export type ClientEndpoint = "csrf" | "status" | "auth" | "session" | "signout"
-export type ClientAction = "register" | "confirm" | "signin" | "resetpassword"
+export type ClientAction = "register" | "confirm" | "signin" | "resetpassword" | "callback"
 
 export interface InternalOptions {
   url: InternalUrl

@@ -21,8 +21,8 @@ export function defaultCookies(useSecureCookies: boolean): CookiesOptions {
         secure: useSecureCookies,
       },
     },
-    clientAuthVerificationToken: {
-      name: `${cookiePrefix}flaship-client.auth-verification-token`,
+    clientVerificationToken: {
+      name: `${cookiePrefix}flaship-client.verification-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",
@@ -48,6 +48,35 @@ export function defaultCookies(useSecureCookies: boolean): CookiesOptions {
         sameSite: "lax",
         path: "/",
         maxAge: 15 * 60,
+        secure: useSecureCookies,
+      },
+    },
+    clientPkceCodeVerifier: {
+      name: `${cookiePrefix}flaship-client.pkce.code_verifier`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: 60 * 15, // 15 minutes in seconds
+      },
+    },
+    clientState: {
+      name: `${cookiePrefix}flaship-client.state`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: 60 * 15, // 15 minutes in seconds
+      },
+    },
+    clientNonce: {
+      name: `${cookiePrefix}flaship-client.nonce`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
         secure: useSecureCookies,
       },
     },

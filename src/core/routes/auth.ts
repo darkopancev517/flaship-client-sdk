@@ -30,17 +30,17 @@ const tokenHashSchema = z.object({
 
 export async function GET(params: RouteParams): Promise<ResponseInternal> {
   const { options, req } = params
-  const { action, providerId, query: reqQuery, cookies: reqCookies } = req
+  const { action, providerId, query, cookies: reqCookies, body, method } = req
   const cookies: cookie.Cookie[] = []
 
   try {
     switch (action) {
       case "confirm": {
         if (providerId === "email") {
-          const { token_hash } = tokenHashSchema.parse(reqQuery)
+          const { token_hash } = tokenHashSchema.parse(query)
 
           const verificationCookie =
-            reqCookies?.[options.cookies.clientAuthVerificationToken.name]
+            reqCookies?.[options.cookies.clientVerificationToken.name]
 
           if (!verificationCookie) {
             throw new Error("Invalid verification cookie")
@@ -60,10 +60,10 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
           // Delete verification cookie
           cookies.push({
-            name: options.cookies.clientAuthVerificationToken.name,
+            name: options.cookies.clientVerificationToken.name,
             value: "",
             options: {
-              ...options.cookies.clientAuthVerificationToken.options,
+              ...options.cookies.clientVerificationToken.options,
               maxAge: 0,
             },
           })
@@ -75,9 +75,36 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
             cookies,
           }
         }
+
+        break
+      }
+
+      case "callback": {
+        switch (providerId) {
+          case "google": {
+            const res = await fetchServer("auth/callback/google", options, {
+              body: {
+                query,
+                body,
+                method,
+              },
+            })
+
+            if (!res.ok) {
+              const { error } = res.data
+              throw new Error(error)
+            }
+
+            return { status: 200, body: {} }
+          }
+
+          default:
+            throw new Error("Invalid auth callback provider")
+        }
       }
 
       default:
+        break
     }
 
     return {
@@ -120,21 +147,24 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
 
             const verificationCookie = res.cookies?.find(
               (cookie) =>
-                cookie.name === options.cookies.clientAuthVerificationToken.name
+                cookie.name === options.cookies.clientVerificationToken.name
             )
 
-            if (verificationCookie) {
-              cookies.push({
-                name: options.cookies.clientAuthVerificationToken.name,
-                value: verificationCookie.value,
-                options: options.cookies.clientAuthVerificationToken.options,
-              })
-
-              return { status: res.status, body: {}, cookies }
+            if (!verificationCookie) {
+              throw new Error("Email verification cookie was missing")
             }
+
+            cookies.push({
+              name: options.cookies.clientVerificationToken.name,
+              value: verificationCookie.value,
+              options: options.cookies.clientVerificationToken.options,
+            })
+
+            return { status: res.status, body: {}, cookies }
           }
 
           default:
+            throw new Error("Invalid auth register provider")
         }
       }
 
@@ -187,6 +217,8 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
 
               return { status: res.status, body: {}, cookies }
             }
+
+            break
           }
 
           case "google": {
@@ -213,6 +245,7 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
           }
 
           default:
+            throw new Error("Invalid signin provider")
         }
       }
 
@@ -304,11 +337,15 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
             }
 
             default:
+              throw new Error("Invalid reset password request")
           }
         }
+
+        break
       }
 
       default:
+        break
     }
 
     return {
