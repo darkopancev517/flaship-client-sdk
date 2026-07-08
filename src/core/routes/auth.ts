@@ -1,10 +1,10 @@
 import * as z from "zod"
-import { createHash } from "crypto"
 
 import * as cookie from "../lib/cookie"
 import type { RouteParams, ResponseInternal } from "../types"
 import { parseError } from "../lib/utils"
 import { fetchServer } from "../lib/server-fetch"
+import { parseClientSession } from "../lib/session"
 
 const resetPasswordTypeSchema = z.object({
   type: z.enum(["request", "confirm"]),
@@ -121,7 +121,23 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
               throw new Error(error)
             }
 
-            return { status: 200, body: {} }
+            console.log(res.cookies)
+
+            const sessionCookie = res.cookies?.find(
+              (cookie) =>
+                cookie.name === options.cookies.clientSessionToken.name
+            )
+
+            if (sessionCookie) {
+              const session = await parseClientSession({
+                options,
+                sessionCookie,
+              })
+
+              return { status: res.status, body: {}, cookies: session.cookies }
+            }
+
+            break
           }
 
           default:
@@ -142,7 +158,7 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
     return {
       status: status,
       body: { error: message },
-      redirect: `${options.url.origin}?error=${encodeURIComponent(message)}`,
+      redirect: `${options.url.origin}/login?error=${encodeURIComponent(message.length !== 0 ? message : "Unexpected auth failed")}`,
     }
   }
 }
@@ -216,32 +232,13 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
                 cookie.name === options.cookies.clientSessionToken.name
             )
 
-            // Verify session cookie
             if (sessionCookie) {
-              const sessionCookieValue = sessionCookie.value
-
-              const [clientId, sessionToken, sessionTokenHash] =
-                sessionCookieValue.split("|")
-
-              if (options.clientId !== clientId) {
-                throw new Error("Invalid session client ID")
-              }
-
-              const expectedSessionTokenHash = createHash("sha256")
-                .update(`${sessionToken}${options.clientApiKey}`)
-                .digest("hex")
-
-              if (expectedSessionTokenHash !== sessionTokenHash) {
-                throw new Error("Invalid session token")
-              }
-
-              cookies.push({
-                name: options.cookies.clientSessionToken.name,
-                value: sessionToken,
-                options: options.cookies.clientSessionToken.options,
+              const session = await parseClientSession({
+                options,
+                sessionCookie,
               })
 
-              return { status: res.status, body: {}, cookies }
+              return { status: res.status, body: {}, cookies: session.cookies }
             }
 
             break
@@ -258,13 +255,7 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
             const { redirect } = res.data
 
             if (res.cookies) {
-              for (const cookie of res.cookies) {
-                cookies.push({
-                  name: cookie.name,
-                  value: cookie.value,
-                  options: cookie.options,
-                })
-              }
+              cookies.push(...res.cookies)
             }
 
             return { status: res.status, body: {}, redirect, cookies }
