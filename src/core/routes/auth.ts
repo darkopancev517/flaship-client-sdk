@@ -121,8 +121,6 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
               throw new Error(error)
             }
 
-            console.log(res.cookies)
-
             const sessionCookie = res.cookies?.find(
               (cookie) =>
                 cookie.name === options.cookies.clientSessionToken.name
@@ -134,7 +132,22 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
                 sessionCookie,
               })
 
-              return { status: res.status, body: {}, cookies: session.cookies }
+              cookies.push(...session.cookies)
+
+              if (res.cookies) {
+                for (const cookie of res.cookies) {
+                  if (cookie.name !== options.cookies.clientSessionToken.name) {
+                    cookies.push(cookie)
+                  }
+                }
+              }
+
+              return {
+                status: res.status,
+                body: {},
+                redirect: options.url.origin,
+                cookies,
+              }
             }
 
             break
