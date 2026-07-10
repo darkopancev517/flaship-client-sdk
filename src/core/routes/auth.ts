@@ -81,39 +81,39 @@ export async function GET(params: RouteParams): Promise<ResponseInternal> {
 
       case "callback": {
         switch (providerId) {
+          case "github":
           case "google": {
+            const checksCookies: cookie.Cookie[] = []
+
             const clientPkceCodeVerifierCookie =
               reqCookies?.[options.cookies.clientPkceCodeVerifier.name]
 
-            if (!clientPkceCodeVerifierCookie) {
-              throw new Error("Client PKCE code verifier cookie was missing")
+            if (clientPkceCodeVerifierCookie) {
+              checksCookies.push({
+                name: options.cookies.clientPkceCodeVerifier.name,
+                value: clientPkceCodeVerifierCookie,
+                options: options.cookies.clientPkceCodeVerifier.options,
+              })
             }
 
             const clientStateCookie =
               reqCookies?.[options.cookies.clientState.name]
 
-            if (!clientStateCookie) {
-              throw new Error("Client state cookie was missing")
+            if (clientStateCookie) {
+              checksCookies.push({
+                name: options.cookies.clientState.name,
+                value: clientStateCookie,
+                options: options.cookies.clientState.options,
+              })
             }
 
-            const res = await fetchServer("auth/callback/google", options, {
+            const res = await fetchServer(`auth/callback/${providerId}`, options, {
               body: {
                 query,
                 body,
                 method,
               },
-              cookies: [
-                {
-                  name: options.cookies.clientPkceCodeVerifier.name,
-                  value: clientPkceCodeVerifierCookie,
-                  options: options.cookies.clientPkceCodeVerifier.options,
-                },
-                {
-                  name: options.cookies.clientState.name,
-                  value: clientStateCookie,
-                  options: options.cookies.clientState.options,
-                },
-              ],
+              cookies: checksCookies,
             })
 
             if (!res.ok) {
@@ -257,8 +257,9 @@ export async function POST(params: RouteParams): Promise<ResponseInternal> {
             break
           }
 
+          case "github":
           case "google": {
-            const res = await fetchServer("auth/signin/google", options)
+            const res = await fetchServer(`auth/signin/${providerId}`, options)
 
             if (!res.ok) {
               const { error } = res.data
